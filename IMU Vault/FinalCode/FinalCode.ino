@@ -93,39 +93,7 @@ void loop()
   int location = returnLocationNumber(accx, accy, accz);
   //Serial.println(location);
   
-  if(location == 10){
-    startTimer(location);
-  }
-  else if(location == 0){
-    startTimer(location);
-  }
-  else if(location == 1){
-    startTimer(location);
-  }
-  else if(location == 2){
-    startTimer(location);
-  }
-  else if(location == 3){
-    startTimer(location);
-  }
-  else if(location == 4){
-    startTimer(location);
-  }
-  else if(location == 5){
-    startTimer(location);
-  }
-  else if(location == 6){
-    startTimer(location);
-  }
-  else if(location == 7){
-    startTimer(location);
-  }
-  else if(location == 8){
-    startTimer(location);
-  }
-  else if(location == 9){
-    startTimer(location);
-  }
+  startTimer(location);
   /*
   for(int i = 0; i < 4; i++){
     Serial.print(password[i]);
