@@ -1,7 +1,8 @@
 #include "MPU9250.h"
 #include <Servo.h>
+#include <Wire.h>
 
-MPU9250 IMU(Wire,0x68);
+MPU9250 IMU(Wire, 0x68);
 Servo myservo;
 //MPU9250 IMU(SPI, 10);
 int status;
@@ -13,17 +14,23 @@ const unsigned long period = 5000;
 const int ledPin = 13;
 boolean timeStart_init = false;
 boolean initStart[11];
+boolean locked = true;
 
 int threshold = 1;
 
 const int passwordSize = 4;
+int passcode[] = {0, 0, 0, 0};
 int password[passwordSize];
+int currentplace = 0;
 
 int returnLocationNumber(float accx, float accy, float accz){
   float myXacc[] = {-6.59, -9.24, -8.17, -3.80, 2.16, 7.51, 10.23, 9.12, 4.79, -1.19};
   float myYacc[] = {7.48, 2.01, -3.93, -8.10, -8.95, -6.13, -0.63, 5.42, 9.55, 10.40};
   if(accz <= -8.0){
     return 10;
+  }
+  else if (accz >= 8.0){
+    return 11;
   }
   else if(abs(accx-myXacc[0])<=threshold && abs(accy-myYacc[0])<=threshold){
     return 0;
@@ -66,7 +73,9 @@ void baseInitStart(){
 
 void setup()
 {
-    Serial.begin(9600);
+  myservo.attach(servo);
+  myservo.write(90);
+  Serial.begin(9600);
   while(!Serial) {}
 
   // start communication with IMU 
@@ -92,21 +101,14 @@ void loop()
   //Serial.println(accz);
   int location = returnLocationNumber(accx, accy, accz);
   //Serial.println(location);
-  
-  startTimer(location);
-  /*
-  for(int i = 0; i < 4; i++){
-    Serial.print(password[i]);
-    Serial.print(" ");
-    Serial.println();
+
+  //go into reading mode
+  if(0<=location && 9>=location){
+    startTimer(location);
   }
-  */
-/*
-  for(int i = 0; i < 11; i++){
-    Serial.print(initStart[i]);
-    Serial.print(" ");
-    Serial.println();
-  }*/
+  if(!locked && location == 10){
+    startTimer(location);
+  }
 }
 
 void startTimer(int location){
@@ -115,16 +117,15 @@ void startTimer(int location){
       baseInitStart();
       initStart[location] = true;
       startmillis = millis();
-      //Serial.print(location);
-      //Serial.println(" position init start!");
       delay(50);
     } else{
       if(currmillis - startmillis >= period){
         //Serial.println("5 second passed! in position ");
         Serial.println(location);
+        Serial.println(currentplace);
         initStart[location] = false;
         //add it to the array;
-        //delay(1000);
+        writepassword(location);
       }
       //Serial.println("inside position");
       //Serial.print(location);
@@ -135,13 +136,46 @@ void lock(){
   myservo.write(70);
   delay(915);
   myservo.write(90);
+  locked = true;
 }
 
 void unlock(){
   myservo.write(110);
   delay(1000);
   myservo.write(90);
+  locked = false;
 }
+
+void trytoopen(int place){
+  if(place == 4) {
+    boolean match = true;
+    for(int i=0; i<passwordSize; i++){
+      if(password[i] != passcode[i]) {
+        match = false;
+        break;
+      }
+      else {
+        Serial.println("check");
+      }
+    }
+    if (match) {
+      Serial.println("unlock");
+      unlock();
+    }
+    currentplace = 0;
+  }
+}
+
+void writepassword(int number) {
+  if(!locked && number == 10) {
+    lock();
+  }
+  password[currentplace]=number;
+  currentplace = currentplace + 1;
+  trytoopen(currentplace);
+}
+
+
 /*
  * Serial.print("GyroX: ");
   Serial.print(IMU.getGyroX_rads(),6);
